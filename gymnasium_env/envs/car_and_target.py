@@ -7,7 +7,7 @@ import numpy as np
 xlim = (-20,20)
 ylim = (-20,20)
 dt = 0.2
-carvelocity = 5
+carvelocity = 15
 
 car_geom = {
     'color' : (120,120,120),
@@ -122,7 +122,7 @@ class CarAndTargetEnv(gym.Env):
 
         # translate action
         str_action = action_lookup[action]
-        
+
         # update car position
         alpha = self.state[2] 
         if str_action == 'turn_left':
@@ -141,12 +141,17 @@ class CarAndTargetEnv(gym.Env):
         self.step_count += 1
         truncated = self.step_count >= self.max_episode_steps
 
-        # Calculatepoistion error and reward
-        self.pos_error = np.sqrt(np.sum((self.target - self.state)**2))
-        self.reward = 500-self.pos_error
+        obs = self._get_obs()
+        distance_to_target = obs[0]
+        heading_error = obs[1]
 
+        # Calculatepoistion error and reward
+        # self.pos_error = np.sqrt(np.sum((self.target - self.state)**2))
+        # self.reward = 100 - self.pos_error
+        self.reward = -0.1 * distance_to_target - 0.5 * abs(heading_error)
         # termnate if target reached
-        terminated = bool( np.sum((self.target-self.state)**2)<0.1 )
+        # terminated = bool( np.sum((self.target-self.state)**2)<0.1 )
+        terminated = distance_to_target < 5.0
 
         # get observation and info
         obs = self._get_obs()

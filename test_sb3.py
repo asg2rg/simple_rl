@@ -63,11 +63,11 @@ os.makedirs(log_dir, exist_ok=True)
 env = CarAndTargetEnv(render_mode=None, max_episode_steps=100)
 env = Monitor(env, log_dir)
 
-model = PPO("MlpPolicy", env, verbose=1, tensorboard_log="./board/")
+model = PPO("MlpPolicy", env, verbose=1, learning_rate=0.0003, gamma= 0.95, tensorboard_log="./board/")
 
 print("----- TRAINING ------")
 callback = SaveOnBestTrainingRewardCallback(check_freq=1000, log_dir=log_dir)
-model.learn(total_timesteps=1000000, callback=callback, tb_log_name="PPO")
+model.learn(total_timesteps=2100000, callback=callback, tb_log_name="PPO")
 model.save("simple_rl")
 print("----- Done Learning ------")
 

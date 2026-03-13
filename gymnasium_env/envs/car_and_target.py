@@ -29,13 +29,15 @@ action_lookup = ['go_straight','turn_left','turn_right']
 class CarAndTargetEnv(gym.Env):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 10}
 
-    def __init__(self, render_mode=None):
+    def __init__(self, render_mode=None, max_episode_steps=100):
 
-        print('init')
+        # print('init')
 
         # constants ................................
         self.window_size = 512  # The size of the PyGame window
         self.omega = 1.0        # [radm/s] the car's angular velocity
+        self.max_episode_steps = max_episode_steps
+        self.step_count = 0
         self.target = np.array([400,100,np.pi])
 
         # initialize the state ......................
@@ -69,8 +71,17 @@ class CarAndTargetEnv(gym.Env):
         dx = self.target[0] - self.state[0]
         dy = self.target[1] - self.state[1]
         distance_to_target = np.sqrt(dx**2+dy**2)
-        angle_to_target = np.arctan2(dy,dx)
-        return distance_to_target, angle_to_target
+        # angle_to_target = np.arctan2(dy,dx)
+        target_angle = np.arctan2(dy, dx)
+        heading_error = target_angle - self.state[2]
+
+        while heading_error > np.pi:
+            heading_error -= 2 * np.pi
+        while heading_error < -np.pi:
+            heading_error += 2 * np.pi
+        return np.array([distance_to_target, heading_error])
+        # return distance_to_target, angle_to_target
+        # return np.array([distance_to_target, angle_to_target])
 
     def _get_info(self):
         return {
@@ -81,15 +92,20 @@ class CarAndTargetEnv(gym.Env):
 
     def reset(self, seed=None, options=None):
 
-        print('reset')
+        # print('reset')
 
         # We need the following line to seed self.np_random
         super().reset(seed=seed)
-
+        self.step_count = 0
+        x = self.np_random.uniform(50, 450)
+        y = self.np_random.uniform(50, 450)
+        alpha = self.np_random.uniform(-np.pi, np.pi)   
+        # randomize initial position 
+        self.state = np.array([x, y, alpha])
         # Initialize the state 
-        self.state = self.initial_state.copy()
+        # self.state = self.initial_state.copy()
         self.pos_error = np.sqrt(np.sum((self.target - self.state)**2))
-        self.reward = None
+        self.reward = 0.0
         
         # render
         if self.render_mode == "human":
@@ -102,7 +118,7 @@ class CarAndTargetEnv(gym.Env):
 
     def step(self, action):
 
-        print('step')
+        # print('step')
 
         # translate action
         str_action = action_lookup[action]
@@ -122,6 +138,8 @@ class CarAndTargetEnv(gym.Env):
         self.state[0] += dt * carvelocity * np.cos(alpha)
         self.state[1] += dt * carvelocity * np.sin(alpha)
         self.state[2] = alpha
+        self.step_count += 1
+        truncated = self.step_count >= self.max_episode_steps
 
         # Calculatepoistion error and reward
         self.pos_error = np.sqrt(np.sum((self.target - self.state)**2))
@@ -137,11 +155,11 @@ class CarAndTargetEnv(gym.Env):
         if self.render_mode == "human":
             self._render_frame()
 
-        return obs, self.reward, terminated, False, info
+        return obs, self.reward, terminated, truncated, info
 
     def render(self):
 
-        print('render')
+        # print('render')
 
         if self.render_mode == "rgb_array":
             return self._render_frame()
@@ -158,7 +176,7 @@ class CarAndTargetEnv(gym.Env):
 
     def _render_frame(self):
 
-        print('render frame')
+        # print('render frame')
  
         if self.window is None and self.render_mode == "human":
             pygame.init()

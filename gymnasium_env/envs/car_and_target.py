@@ -7,7 +7,7 @@ import numpy as np
 xlim = (-20,20)
 ylim = (-20,20)
 dt = 0.2
-carvelocity = 15
+carvelocity = 20
 
 car_geom = {
     'color' : (120,120,120),

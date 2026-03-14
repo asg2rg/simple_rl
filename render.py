@@ -1,17 +1,14 @@
 from stable_baselines3 import PPO
 from gymnasium_env.envs.car_and_target import CarAndTargetEnv
 
-# 1. Create a renderable environment
 env = CarAndTargetEnv(render_mode="human", max_episode_steps=100)
 
-# 2. Load the saved model
-model = PPO.load("simple_rl")
+# Load the saved model
+model = PPO.load("")
 
-# 3. Reset the environment
 obs, info = env.reset()
 
-# 4. Run the trained policy
-for _ in range(300):
+for _ in range(500):
     action, _state = model.predict(obs, deterministic=True)
     obs, reward, terminated, truncated, info = env.step(action)
 

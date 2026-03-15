@@ -1,6 +1,8 @@
 import gymnasium as gym
 # import gymnasium_env
-from gymnasium_env.envs.car_and_target import CarAndTargetEnv
+# from gymnasium_env.envs.car_and_target import CarAndTargetEnv
+from gymnasium_env.envs.env import CarAndTargetEnv
+
 from stable_baselines3 import PPO
 import os
 import numpy as np
@@ -67,7 +69,7 @@ model = PPO("MlpPolicy", env, verbose=1, learning_rate=0.0003, gamma= 0.95, tens
 
 print("----- TRAINING ------")
 callback = SaveOnBestTrainingRewardCallback(check_freq=1000, log_dir=log_dir)
-model.learn(total_timesteps=4000000, callback=callback, tb_log_name="PPO")
+model.learn(total_timesteps=8000000, callback=callback, tb_log_name="PPO")
 model.save("simple_rl")
 print("----- Done Learning ------")
 

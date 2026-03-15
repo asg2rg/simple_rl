@@ -8,7 +8,7 @@ xlim = (-20,20)
 ylim = (-20,20)
 dt = 0.2
 carvelocity = 20
-targetvelocity = 20
+targetvelocity = 10
 
 car_geom = {
     'color' : (120,120,120),
@@ -41,14 +41,27 @@ class CarAndTargetEnv(gym.Env):
         self.step_count = 0
         self.target = np.array([400,100,np.pi])
         self.target_speed = targetvelocity
+        # initialize lidar
+        self.lidar_radius = 90
+        self.lidar_color = (255, 0, 0)
+        self.lidar_width = 2
+
+        #initialize obstacles
+        self.num_obstacles = 10
+        self.obstacle_radius = 18
+        self.obstacles = []
+
         # initialize the state ......................
         ic = np.array([100,400,0.0])    # x,y,alpha
         self.initial_state = ic.copy()
         self.state = ic.copy()
 
         # observation and action spaces ..............
-        self.observation_space = spaces.Box(low=np.array([0.0, -np.pi]), 
-                                            high=np.array([np.inf, np.pi]), dtype=np.float32)
+        self.observation_space = spaces.Box(
+            low=np.array([0.0, -np.pi, 0.0, -np.pi], dtype=np.float32),
+            high=np.array([np.inf, np.pi, self.lidar_radius, np.pi], dtype=np.float32),
+            dtype=np.float32
+        )
 
 
         self.action_space = spaces.Discrete(3)   # go_straight, turn_left, turn_right
@@ -80,15 +93,26 @@ class CarAndTargetEnv(gym.Env):
             heading_error -= 2 * np.pi
         while heading_error < -np.pi:
             heading_error += 2 * np.pi
-        return np.array([distance_to_target, heading_error])
+
+        nearest = self.get_nearest_lidar_detection()
+        if nearest is None:
+            obstacle_distance = self.lidar_radius
+            obstacle_angle = 0.0
+        else:
+            obstacle_distance = nearest["distance"]
+            obstacle_angle = nearest["angle"]
+
+        return np.array([
+            distance_to_target, heading_error, obstacle_distance, obstacle_angle])
         # return distance_to_target, angle_to_target
         # return np.array([distance_to_target, angle_to_target])
 
     def _get_info(self):
         return {
-            "pos_error" : self.pos_error,
+            # "pos_error" : self.pos_error,
             "reward" : self.reward,
-            "state" : self.state
+            "state" : self.state,
+            "lidar_detections": self.get_lidar_detections()
         }
 
     def reset(self, seed=None, options=None):
@@ -111,11 +135,12 @@ class CarAndTargetEnv(gym.Env):
         self.state = np.array([x, y, alpha])
         self.target = np.array([tar_x, tar_y, tar_alpha])
         self.target_goal = np.array([random_goal_x, random_goal_y])
+        self.obstacles = self.sample_obstacles()
         # Initialize the state 
         # self.state = self.initial_state.copy()
-        self.pos_error = np.sqrt(np.sum((self.target - self.state)**2))
+        # self.pos_error = np.sqrt(np.sum((self.target - self.state)**2))
         self.reward = 0.0
-        
+
         # render
         if self.render_mode == "human":
             self._render_frame()
@@ -166,20 +191,36 @@ class CarAndTargetEnv(gym.Env):
         self.state[0] += dt * carvelocity * np.cos(alpha)
         self.state[1] += dt * carvelocity * np.sin(alpha)
         self.state[2] = alpha
+
         self.step_count += 1
         truncated = self.step_count >= self.max_episode_steps
 
         obs = self._get_obs()
         distance_to_target = obs[0]
         heading_error = obs[1]
+        obstacle_distance = obs[2]
+
+        # design obstacle avoidance reward
+        obstacle_penalty = 0.0
+        safe_distance = 35.0
+        collision_distance = self.obstacle_radius + car_geom["radius"]
+        hit_obstacle = False
+        # print("detected")
+        # print("dist: ", nearest_distance)
+        if obstacle_distance < safe_distance:
+            obstacle_penalty = 0.5 * (safe_distance - obstacle_distance)
+        if obstacle_distance < collision_distance:
+            hit_obstacle = True
+            # obstacle_penalty += 10.0
 
         # Calculatepoistion error and reward
         # self.pos_error = np.sqrt(np.sum((self.target - self.state)**2))
         # self.reward = 100 - self.pos_error
-        self.reward = -0.1 * distance_to_target - 0.5 * abs(heading_error)
+        self.reward = -0.1 * distance_to_target - 0.5 * abs(heading_error) - obstacle_penalty
+
         # termnate if target reached
         # terminated = bool( np.sum((self.target-self.state)**2)<0.1 )
-        terminated = distance_to_target < 5.0
+        terminated = (distance_to_target < 5.0) 
 
         # get observation and info
         obs = self._get_obs()
@@ -207,6 +248,27 @@ class CarAndTargetEnv(gym.Env):
         pygame.draw.circle(canvas,color,base,geom['radius'])
         pygame.draw.line(canvas,color,base,tip,width=geom['width'])
 
+    # render obstacle
+    def _render_obstacles(self, canvas):
+        for obs in self.obstacles:
+            pygame.draw.circle(
+                canvas,
+                (0, 255, 0),
+                obs.astype(int),
+                self.obstacle_radius
+            )
+
+    # render lidar
+    def _render_lidar(self, canvas):
+        car_center = self.state[:2].astype(int)
+        pygame.draw.circle(
+            canvas,
+            self.lidar_color,
+            car_center,
+            self.lidar_radius,
+            self.lidar_width
+        )
+
     def _render_frame(self):
 
         # print('render frame')
@@ -221,9 +283,11 @@ class CarAndTargetEnv(gym.Env):
         canvas = pygame.Surface((self.window_size, self.window_size))
         canvas.fill((255, 255, 255))
 
-        # car and target
-        self._render_circle_line(canvas,self.state,car_geom)
-        self._render_circle_line(canvas,self.target,target_geom)
+        # obstacles, lidar, car and target
+        self._render_obstacles(canvas)
+        self._render_lidar(canvas)
+        self._render_circle_line(canvas, self.state, car_geom)
+        self._render_circle_line(canvas, self.target, target_geom)
         
         if self.render_mode == "human":
             # The following line copies our drawings from `canvas` to the visible window
@@ -244,3 +308,47 @@ class CarAndTargetEnv(gym.Env):
         if self.window is not None:
             pygame.display.quit()
             pygame.quit()
+
+    def sample_obstacles(self):
+        obstacles = []
+        for _ in range(self.num_obstacles):
+            rand_x = self.np_random.uniform(80, 430)
+            rand_y = self.np_random.uniform(80, 430)
+            obstacles.append(np.array([rand_x, rand_y]))
+        return obstacles
+
+    def get_lidar_detections(self):
+        car_pos = self.state[:2]
+        car_heading = self.state[2]
+
+        detections = []
+
+        for obs in self.obstacles:
+            dx = obs[0] - car_pos[0]
+            dy = obs[1] - car_pos[1]
+
+            distance = np.sqrt(dx**2 + dy**2)
+
+            if distance <= self.lidar_radius:
+                global_angle = np.arctan2(dy, dx)
+                relative_angle = global_angle - car_heading
+
+                while relative_angle > np.pi:
+                    relative_angle -= 2 * np.pi
+                while relative_angle < -np.pi:
+                    relative_angle += 2 * np.pi
+
+                detections.append({
+                    "position": obs.copy(),
+                    "distance": distance,
+                    "angle": relative_angle
+                })
+
+        return detections
+
+
+    def get_nearest_lidar_detection(self):
+        detections = self.get_lidar_detections()
+        if len(detections) == 0:
+            return None
+        return min(detections, key=lambda d: d["distance"])

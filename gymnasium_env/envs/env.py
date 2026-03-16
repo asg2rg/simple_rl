@@ -47,8 +47,8 @@ class CarAndTargetEnv(gym.Env):
         self.lidar_width = 2
 
         #initialize obstacles
-        self.num_obstacles = 10
-        self.obstacle_radius = 18
+        self.num_obstacles = 6
+        self.obstacle_radius = 30
         self.obstacles = []
 
         # initialize the state ......................
@@ -202,16 +202,16 @@ class CarAndTargetEnv(gym.Env):
 
         # design obstacle avoidance reward
         obstacle_penalty = 0.0
-        safe_distance = 35.0
+        safe_distance = 50.0
         collision_distance = self.obstacle_radius + car_geom["radius"]
         hit_obstacle = False
         # print("detected")
         # print("dist: ", nearest_distance)
         if obstacle_distance < safe_distance:
-            obstacle_penalty = 0.5 * (safe_distance - obstacle_distance)
+            obstacle_penalty = 0.8 * (safe_distance - obstacle_distance)
         if obstacle_distance < collision_distance:
             hit_obstacle = True
-            # obstacle_penalty += 10.0
+            obstacle_penalty += 15.0
 
         # Calculatepoistion error and reward
         # self.pos_error = np.sqrt(np.sum((self.target - self.state)**2))

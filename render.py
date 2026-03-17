@@ -2,7 +2,7 @@ from stable_baselines3 import PPO
 from gymnasium_env.envs.car_and_target import CarAndTargetEnv
 # from gymnasium_env.envs.env import CarAndTargetEnv
 
-env = CarAndTargetEnv(render_mode="human", max_episode_steps=300)
+env = CarAndTargetEnv(render_mode="human", max_episode_steps=100)
 
 # Load the saved model
 # model = PPO.load(r"C:\Users\JinHong\Desktop\simple_rl\tmp\best_model.zip")

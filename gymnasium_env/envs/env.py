@@ -58,7 +58,7 @@ class CarAndTargetEnv(gym.Env):
 
         # observation and action spaces ..............
         self.observation_space = spaces.Box(
-            low=np.array([0.0, -np.pi, 0.0, -np.pi], dtype=np.float32),
+            low=np.array([0.0, -np.pi, -self.obstacle_radius - car_geom["radius"], -np.pi], dtype=np.float32),
             high=np.array([np.inf, np.pi, self.lidar_radius, np.pi], dtype=np.float32),
             dtype=np.float32
         )
@@ -202,14 +202,13 @@ class CarAndTargetEnv(gym.Env):
 
         # design obstacle avoidance reward
         obstacle_penalty = 0.0
-        safe_distance = 45.0
-        collision_distance = self.obstacle_radius + car_geom["radius"]
+        safe_distance = 15
         hit_obstacle = False
         # print("detected")
         # print("dist: ", nearest_distance)
         if obstacle_distance < safe_distance:
             obstacle_penalty = 0.7 * (safe_distance - obstacle_distance)
-        if obstacle_distance < collision_distance:
+        if obstacle_distance <= 0:
             hit_obstacle = True
             obstacle_penalty += 15.0
 
@@ -327,7 +326,7 @@ class CarAndTargetEnv(gym.Env):
             dx = obs[0] - car_pos[0]
             dy = obs[1] - car_pos[1]
 
-            distance = np.sqrt(dx**2 + dy**2)
+            distance = np.sqrt(dx**2 + dy**2) - self.obstacle_radius - car_geom["radius"]
 
             if distance <= self.lidar_radius:
                 global_angle = np.arctan2(dy, dx)

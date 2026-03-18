@@ -1,6 +1,6 @@
 from stable_baselines3 import PPO
-# from gymnasium_env.envs.car_and_target import CarAndTargetEnv
-from gymnasium_env.envs.env import CarAndTargetEnv
+from gymnasium_env.envs.car_and_target import CarAndTargetEnv
+# from gymnasium_env.envs.env import CarAndTargetEnv
 
 env = CarAndTargetEnv(render_mode="human", max_episode_steps=300)
 

@@ -1,7 +1,7 @@
 import gymnasium as gym
 # import gymnasium_env
-# from gymnasium_env.envs.car_and_target import CarAndTargetEnv
-from gymnasium_env.envs.env import CarAndTargetEnv
+from gymnasium_env.envs.car_and_target import CarAndTargetEnv
+# from gymnasium_env.envs.env import CarAndTargetEnv
 
 from stable_baselines3 import PPO
 import os
@@ -69,19 +69,40 @@ model = PPO("MlpPolicy", env, verbose=1, learning_rate=0.0003, gamma= 0.95, tens
 
 print("----- TRAINING ------")
 callback = SaveOnBestTrainingRewardCallback(check_freq=1000, log_dir=log_dir)
-model.learn(total_timesteps=40000000, callback=callback, tb_log_name="PPO")
+model.learn(total_timesteps=4000000, callback=callback, tb_log_name="PPO")
 model.save("simple_rl")
 print("----- Done Learning ------")
 
 
-# eval_env = CarAndTargetEnv(render_mode="human", max_episode_steps=100)
-
-# obs, info = eval_env.reset()
-# for _ in range(300):
+# obs, info = env.reset()
+# for i in range(100):
 #     action, _state = model.predict(obs, deterministic=True)
-#     obs, reward, terminated, truncated, info = eval_env.step(action)
+#     obs, reward, done, _, info = env.step(action)
 
-#     if terminated or truncated:
-#         obs, info = eval_env.reset()
+#     # vec_env.render("human")
+#     # VecEnv resets automatically
+#     if done:
+#       obs = env.reset()
 
-# eval_env.close()
+# env.close()
+
+# vec_env = model.get_env()
+# obs = vec_env.reset()
+# for i in range(100):
+#     action, _state = model.predict(obs, deterministic=True)
+#     obs, reward, done, info = vec_env.step(action)
+#     vec_env.render("human")
+#     if done:
+#       obs = vec_env.reset()
+
+eval_env = CarAndTargetEnv(render_mode="human", max_episode_steps=100)
+
+obs, info = eval_env.reset()
+for _ in range(300):
+    action, _state = model.predict(obs, deterministic=True)
+    obs, reward, terminated, truncated, info = eval_env.step(action)
+
+    if terminated or truncated:
+        obs, info = eval_env.reset()
+
+eval_env.close()

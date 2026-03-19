@@ -42,7 +42,7 @@ class CarAndTargetEnv(gym.Env):
         self.target = np.array([400,100,np.pi])
         self.target_speed = targetvelocity
         # initialize lidar
-        self.lidar_radius = 90
+        self.lidar_radius = 100
         self.lidar_color = (255, 0, 0)
         self.lidar_width = 2
 
@@ -159,10 +159,14 @@ class CarAndTargetEnv(gym.Env):
 
         # update car position
         alpha = self.state[2] 
+        speed = carvelocity
+
         if str_action == 'turn_left':
             alpha += dt * self.omega
+            speed = carvelocity * 0.8
         elif str_action == 'turn_right':
             alpha -= dt * self.omega
+            speed = carvelocity * 0.8
 
         if alpha > np.pi:
             alpha -= 2*np.pi
@@ -188,8 +192,8 @@ class CarAndTargetEnv(gym.Env):
             self.target[1] += move * direction[1]
             self.target[2] = np.arctan2(direction[1], direction[0])
             
-        self.state[0] += dt * carvelocity * np.cos(alpha)
-        self.state[1] += dt * carvelocity * np.sin(alpha)
+        self.state[0] += dt * speed * np.cos(alpha)
+        self.state[1] += dt * speed * np.sin(alpha)
         self.state[2] = alpha
 
         self.step_count += 1
@@ -210,7 +214,7 @@ class CarAndTargetEnv(gym.Env):
             obstacle_penalty = 0.7 * (safe_distance - obstacle_distance)
         if obstacle_distance <= 0:
             hit_obstacle = True
-            obstacle_penalty += 15.0
+            obstacle_penalty += 20.0
 
         # Calculatepoistion error and reward
         # self.pos_error = np.sqrt(np.sum((self.target - self.state)**2))

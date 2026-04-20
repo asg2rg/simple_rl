@@ -62,7 +62,7 @@ log_dir = "tmp/"
 os.makedirs(log_dir, exist_ok=True)
 
 # env = CarAndTargetEnv(render_mode="human")                     
-env = CarAndTargetEnv(render_mode=None, max_episode_steps=200)
+env = CarAndTargetEnv(render_mode=None, max_episode_steps=100)
 env = Monitor(env, log_dir)
 
 model = PPO("MlpPolicy", env, verbose=1, learning_rate=0.0003, gamma= 0.95, tensorboard_log="./board/")

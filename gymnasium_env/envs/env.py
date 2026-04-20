@@ -163,10 +163,10 @@ class CarAndTargetEnv(gym.Env):
 
         if str_action == 'turn_left':
             alpha += dt * self.omega
-            speed = carvelocity * 0.8
+            speed = carvelocity * 0.6
         elif str_action == 'turn_right':
             alpha -= dt * self.omega
-            speed = carvelocity * 0.8
+            speed = carvelocity * 0.6
 
         if alpha > np.pi:
             alpha -= 2*np.pi
